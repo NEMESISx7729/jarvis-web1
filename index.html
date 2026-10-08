@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS Interface</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --surface: #0a0a0f;
+            --border: #1e2640;
+            --cyan-glow: #00e5ff;
+            --blue-accent: #2563eb;
+            --text-main: #ffffff;
+            --text-dim: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 24px 16px;
+            overflow-x: hidden;
+        }
+
+        /* Top Status Bar */
+        .hud-header {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 18px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 13px;
+            letter-spacing: 1.5px;
+            color: var(--cyan-glow);
+            text-transform: uppercase;
+        }
+
+        .status-dot {
+            height: 8px;
+            width: 8px;
+            background-color: var(--cyan-glow);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 10px var(--cyan-glow);
+        }
+
+        /* Central Arc Reactor Visualizer */
+        .core-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 40px 0;
+        }
+
+        .reactor-ring {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            border: 2px dashed rgba(0, 229, 255, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .reactor-core {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 229, 255, 0.3) 0%, rgba(0,0,0,0.9) 70%);
+            border: 2px solid var(--cyan-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 25px rgba(0, 229, 255, 0.4);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .reactor-core.listening {
+            animation: pulseGlow 1.2s infinite alternate;
+            border-color: #38bdf8;
+        }
+
+        @keyframes pulseGlow {
+            0% {
+                box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
+                transform: scale(0.96);
+            }
+            100% {
+                box-shadow: 0 0 45px rgba(0, 229, 255, 0.9);
+                transform: scale(1.05);
+            }
+        }
+
+        .core-text {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--cyan-glow);
+        }
+
+        /* Conversation Console */
+        .console-container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+            min-height: 140px;
+            justify-content: center;
+        }
+
+        .hud-label {
+            font-size: 11px;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        .user-text {
+            font-size: 15px;
+            color: var(--text-main);
+            min-height: 20px;
+        }
+
+        .jarvis-text {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--cyan-glow);
+            min-height: 24px;
+        }
+
+        /* Control Input Field */
+        .control-box {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .command-input {
+            flex: 1;
+            background: #111420;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            color: #ffffff;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .command-input:focus {
+            border-color: var(--cyan-glow);
+        }
+
+        .btn-action {
+            background: var(--cyan-glow);
+            color: #000000;
+            font-weight: 700;
+            border: none;
+            border-radius: 10px;
+            padding: 0 20px;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-action:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top HUD -->
+    <div class="hud-header">
+        <div><span class="status-dot"></span> SYSTEM ONLINE</div>
+        <div id="systemTime">00:00:00</div>
+    </div>
+
+    <!-- Center Reactor Arc -->
+    <div class="core-container">
+        <div class="reactor-ring">
+            <div class="reactor-core" id="reactorBtn">
+                <span class="core-text" id="coreLabel">ACTIVATE</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interaction Display Console -->
+    <div class="console-container">
+        <div>
+            <div class="hud-label">User Query</div>
+            <div class="user-text" id="userOutput">Tap ACTIVATE or speak...</div>
+        </div>
+        <hr style="border: 0; border-top: 1px solid var(--border);">
+        <div>
+            <div class="hud-label">JARVIS Response</div>
+            <div class="jarvis-text" id="jarvisOutput">Standing by for instructions, sir.</div>
+        </div>
+    </div>
+
+    <!-- Fallback Text Controls -->
+    <div class="control-box">
+        <input type="text" id="txtInput" class="command-input" placeholder="Type a manual command or instruction...">
+        <button id="sendBtn" class="btn-action">RUN</button>
+    </div>
+
+    <script>
+        // Clock Display
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('systemTime').textContent = now.toTimeString().split(' ')[0];
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        const userOutput = document.getElementById('userOutput');
+        const jarvisOutput = document.getElementById('jarvisOutput');
+        const reactorBtn = document.getElementById('reactorBtn');
+        const coreLabel = document.getElementById('coreLabel');
+        const txtInput = document.getElementById('txtInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        // Speech Synthesis (The Voice)
+        function speak(text) {
+            if (!('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1.05;
+            utterance.pitch = 0.95;
+
+            // Select an English voice
+            const voices = window.speechSynthesis.getVoices();
+            const selectedVoice = voices.find(v => v.lang.includes('en') && (v.name.includes('Natural') || v.name.includes('Google'))) || voices[0];
+            if (selectedVoice) utterance.voice = selectedVoice;
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // Web Speech Recognition (The Ears)
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognizer = null;
+        let isListening = false;
+
+        if (SpeechRecognition) {
+            recognizer = new SpeechRecognition();
+            recognizer.continuous = false;
+            recognizer.lang = 'en-US';
+            recognizer.interimResults = false;
+
+            recognizer.onstart = () => {
+                isListening = true;
+                reactorBtn.classList.add('listening');
+                coreLabel.textContent = "LISTENING";
+            };
+
+            recognizer.onend = () => {
+                isListening = false;
+                reactorBtn.classList.remove('listening');
+                coreLabel.textContent = "ACTIVATE";
+            };
+
+            recognizer.onresult = (event) => {
+                const query = event.results[0][0].transcript;
+                userOutput.textContent = `"${query}"`;
+                handleQuery(query);
+            };
+
+            recognizer.onerror = () => {
+                isListening = false;
+                reactorBtn.classList.remove('listening');
+                coreLabel.textContent = "ACTIVATE";
+            };
+        } else {
+            coreLabel.textContent = "MANUAL";
+        }
+
+        reactorBtn.addEventListener('click', () => {
+            if (!recognizer) {
+                alert("Speech recognition is not supported in this browser. Please use Chrome or Edge.");
+                return;
+            }
+            if (isListening) {
+                recognizer.stop();
+            } else {
+                recognizer.start();
+            }
+        });
+
+        // Intent Parser & Actions (The Logic)
+        function handleQuery(rawQuery) {
+            const q = rawQuery.toLowerCase().trim();
+            let reply = "";
+
+            if (q.includes("time")) {
+                const now = new Date();
+                reply = `The current time is ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`;
+            } else if (q.includes("date") || q.includes("day")) {
+                const now = new Date();
+                reply = `Today is ${now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}.`;
+            } else if (q.startsWith("open youtube") || q === "youtube") {
+                reply = "Opening YouTube now.";
+                window.open("https://www.youtube.com", "_blank");
+            } else if (q.startsWith("open google") || q === "google") {
+                reply = "Accessing Google services.";
+                window.open("https://www.google.com", "_blank");
+            } else if (q.startsWith("search ") || q.startsWith("google ")) {
+                const term = q.replace("search", "").replace("google", "").trim();
+                reply = `Searching the web for ${term}.`;
+                window.open(`https://www.google.com/search?q=${encodeURIComponent(term)}`, "_blank");
+            } else if (q.includes("who are you") || q.includes("your name")) {
+                reply = "I am JARVIS, your automated tactical interface and personal companion.";
+            } else if (q.includes("calculate") || q.includes("+") || q.includes("-") || q.includes("*") || q.includes("/")) {
+                try {
+                    const sanitized = q.replace(/[^0-9+\-*/().]/g, '');
+                    const result = Function(`'use strict'; return (${sanitized})`)();
+                    reply = `The result is ${result}.`;
+                } catch {
+                    reply = "I was unable to compute that calculation.";
+                }
+            } else {
+                reply = `Instruction received: "${rawQuery}". System operating normally.`;
+            }
+
+            jarvisOutput.textContent = reply;
+            speak(reply);
+        }
+
+        // Manual text handler
+        function submitManual() {
+            const val = txtInput.value.trim();
+            if (!val) return;
+            userOutput.textContent = `"${val}"`;
+            handleQuery(val);
+            txtInput.value = "";
+        }
+
+        sendBtn.addEventListener('click', submitManual);
+        txtInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') submitManual();
+        });
+    </script>
+</body>
+                  </html>
+                  
